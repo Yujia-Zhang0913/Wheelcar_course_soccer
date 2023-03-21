@@ -1,6 +1,7 @@
 import sys
 import socket
 import threading
+import time
 
 from vision_detection_pb2 import Vision_DetectionFrame
 
@@ -9,8 +10,11 @@ class Vision(object):
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.vision_address = '127.0.0.1'
 		self.vision_port = 23333
+		# self.vision_address = '0.0.0.0'
+		# self.vision_port = 60483
+		# self.vision_port = 196200
 		self.sock.bind((self.vision_address, self.vision_port))
-		self.sock.settimeout(1.0)
+		self.sock.settimeout(10)
 		self.vision_thread = threading.Thread(target=self.receive_vision)
 		self.vision_thread.daemon = True
 		self.vision_thread.start()
@@ -20,6 +24,7 @@ class Vision(object):
 
 	def receive_vision(self):
 		while True:
+		# while self.my_robot.x!=-999999:
 			try:
 				data, server = self.sock.recvfrom(4096)
 				# print('received message from', server)
@@ -96,6 +101,13 @@ class Robot(object):
 
 if __name__ == '__main__':
 	vision_module = Vision()
+	time.sleep(0.1)
+	# for i in range(0,265535):
+	# 	# vision_module.vision_port=i
+	# 	my_robot = vision_module.my_robot
+	# 	if my_robot.x!=-999999 :
+	# 		print(i)
+	# 		break
 	my_robot = vision_module.my_robot
 	print('My robot:', my_robot.x, my_robot.y)
 	blue_robot_0 = vision_module.blue_robot[0]
