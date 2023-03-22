@@ -10,7 +10,7 @@ from RRT_rewire import RRT_
 from dwaplanner import DWA
 from dwaplanner import Config
 import numpy as np
-
+# to use control feedback please cancel the # of all lines with "control" except the instruction line
 if __name__ == '__main__':
 	# time.sleep(10)
 	vision = Vision()
@@ -28,6 +28,7 @@ if __name__ == '__main__':
 	rrt_=RRT_(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
 	best_path_X,best_path_Y=rrt_.Process()
 	path=np.transpose([best_path_X,best_path_Y])
+	# to use control feedback cancel the # of next line
 	# controller=Controller(path=path,robot=myRobot)
 	while True:
 		# 1. path planning & velocity planning
@@ -39,11 +40,12 @@ if __name__ == '__main__':
 		# controller=Controller(path=path,robot=myRobot)
 		# print(best_path_X,best_path_Y)
 		# 2. send command
-
+		# to use control feedback cancel the # of next line
 		# v,w=controller.refresh()
 		# action.sendCommand(vx=v, vy=0, vw=w)
 		# print(v,w,myRobot.x,myRobot.y,myRobot.orientation)
 
+		# to use control feedback # the next 10 line
 		dwa=DWA()
 		dwaconfig=Config(22)
 		robot_info=[myRobot.x,myRobot.y,myRobot.orientation,0,0]

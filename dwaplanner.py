@@ -78,15 +78,15 @@ class DWA:
         best_traj = []
 
         # 动态窗口初始化
-        # minV = max(dwaconfig.min_speed, robot_info[3] - dwaconfig.max_accel*dwaconfig.dt)
-        # maxV = min(dwaconfig.max_speed, robot_info[3] + dwaconfig.max_accel*dwaconfig.dt)
-        # minW = max(-dwaconfig.max_yawrate, robot_info[4] - dwaconfig.max_dyawrate*dwaconfig.dt)
-        # maxW = min(dwaconfig.max_yawrate, robot_info[4] + dwaconfig.max_dyawrate*dwaconfig.dt)
+        minV = max(dwaconfig.min_speed, robot_info[3] - dwaconfig.max_accel*dwaconfig.dt)
+        maxV = min(dwaconfig.max_speed, robot_info[3] + dwaconfig.max_accel*dwaconfig.dt)
+        minW = max(-dwaconfig.max_yawrate, robot_info[4] - dwaconfig.max_dyawrate*dwaconfig.dt)
+        maxW = min(dwaconfig.max_yawrate, robot_info[4] + dwaconfig.max_dyawrate*dwaconfig.dt)
 
-        minV = dwaconfig.min_speed
-        maxV = dwaconfig.max_speed
-        minW = -dwaconfig.max_yawrate
-        maxW = dwaconfig.max_yawrate
+        # minV = dwaconfig.min_speed
+        # maxV = dwaconfig.max_speed
+        # minW = -dwaconfig.max_yawrate
+        # maxW = dwaconfig.max_yawrate
 
         possibleV_num = int((maxV - minV)/dwaconfig.v_reso) + 1
         possibleW_num = int((maxW - minW)/dwaconfig.yawrate_reso) + 1
