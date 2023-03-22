@@ -10,7 +10,7 @@ from RRT_rewire import RRT_
 from dwaplanner import DWA
 from dwaplanner import Config
 import numpy as np
-# to use control feedback please cancel the # of all lines with "control" except the instruction line
+# 想要使用反馈控制，就把所有带control的取消注释
 if __name__ == '__main__':
 	# time.sleep(10)
 	vision = Vision()
@@ -26,26 +26,29 @@ if __name__ == '__main__':
 	a_star=A_star(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
 	rrt=RRT(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
 	rrt_=RRT_(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
+	# 想要使用反馈控制，注释下两行
 	best_path_X,best_path_Y=rrt_.Process()
 	path=np.transpose([best_path_X,best_path_Y])
-	# to use control feedback cancel the # of next line
+	# 想要使用反馈控制，取消下一行注释
 	# controller=Controller(path=path,robot=myRobot)
 	while True:
 		# 1. path planning & velocity planning
 		# Do something
+		# 想要使用反馈控制，下面三个选一个取消注释
 		# best_path_X,best_path_Y=a_star.Process()
 		# best_path_X,best_path_Y=rrt.Process()
 		# best_path_X,best_path_Y=rrt_.Process()
+		# 想要使用反馈控制，取消下三行注释
 		# path=np.transpose([best_path_X,best_path_Y])
 		# controller=Controller(path=path,robot=myRobot)
 		# print(best_path_X,best_path_Y)
 		# 2. send command
-		# to use control feedback cancel the # of next line
+		# 想要使用反馈控制，取消下三行注释
 		# v,w=controller.refresh()
 		# action.sendCommand(vx=v, vy=0, vw=w)
 		# print(v,w,myRobot.x,myRobot.y,myRobot.orientation)
 
-		# to use control feedback # the next 10 line
+		# 想要使用反馈控制，注释下10行
 		dwa=DWA()
 		dwaconfig=Config(22)
 		robot_info=[myRobot.x,myRobot.y,myRobot.orientation,0,0]
