@@ -19,20 +19,23 @@ if __name__ == '__main__':
 	time.sleep(0.1)
 	action = Action()
 	debugger = Debugger()
-	blue_robot_xy=[np.array([vision.blue_robot[i].x,vision.blue_robot[i].y]) for i in range(1,15) if vision.blue_robot[i].x!=-999999 and vision.blue_robot[i].y!=-999999]
-	yellow_robot_xy=[np.array([vision.yellow_robot[i].x,vision.yellow_robot[i].y]) for i in range(0,15) if vision.yellow_robot[i].x!=-999999 and vision.yellow_robot[i].y!=-999999]
-	obstacles=np.array(blue_robot_xy+yellow_robot_xy)
+	# blue_robot_xy=[np.array([vision.blue_robot[i].x,vision.blue_robot[i].y]) for i in range(1,15) if vision.blue_robot[i].x!=-999999 and vision.blue_robot[i].y!=-999999]
+	# yellow_robot_xy=[np.array([vision.yellow_robot[i].x,vision.yellow_robot[i].y]) for i in range(0,15) if vision.yellow_robot[i].x!=-999999 and vision.yellow_robot[i].y!=-999999]
+	# obstacles=np.array(blue_robot_xy+yellow_robot_xy)
 	# print(obstacles)
 	myRobot=vision.my_robot
 	my_robot_xy=np.array([myRobot.x,myRobot.y])
-	a_star=A_star(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
-	rrt=RRT(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
-	rrt_=RRT_(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
+	# a_star=A_star(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
+	# rrt=RRT(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
+	# rrt_=RRT_(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
 	# 想要使用反馈控制，注释下两行
 	# best_path_X,best_path_Y=rrt_.Process()
 	# path=np.transpose([best_path_X,best_path_Y])
 	# 想要使用反馈控制，取消下一行注释
 	# controller=Controller(path=path,robot=myRobot)
+	i=1
+	flag=0
+	last_flag=0
 	while True:
 		blue_robot_xy=[np.array([vision.blue_robot[i].x,vision.blue_robot[i].y]) for i in range(1,15) if vision.blue_robot[i].x!=-999999 and vision.blue_robot[i].y!=-999999]
 		yellow_robot_xy=[np.array([vision.yellow_robot[i].x,vision.yellow_robot[i].y]) for i in range(0,15) if vision.yellow_robot[i].x!=-999999 and vision.yellow_robot[i].y!=-999999]
@@ -41,6 +44,10 @@ if __name__ == '__main__':
 		# 1. path planning & velocity planning
 		# Do something
 		# 想要使用反馈控制，下面三个选一个取消注释
+		if i==1 or 3 or 5:
+			rrt_=RRT_(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
+		else:
+			rrt_=RRT_(obstacles, my_robot_xy, [2400, 1500], -4950,-3694,4950,3696)
 		# best_path_X,best_path_Y=a_star.Process()
 		# best_path_X,best_path_Y=rrt.Process()
 		best_path_X,best_path_Y=rrt_.Process()
@@ -69,8 +76,12 @@ if __name__ == '__main__':
 		action.sendCommand(vx=v, vy=0, vw=w)
 		myRobot.vx=v #更新信息
 		myRobot.vw=w
+		if midpos==[best_path_X[-1],best_path_Y[-1]]:
+			flag=1
+		if flag==1 and last_flag==0:
+			i=i+1
+			last_flag=1
 		# print(v,w,myRobot.x,myRobot.y,myRobot.orientation)
-
 		# 3. draw debug msg
 		package = Debug_Msgs()
 		# debugger.draw_point(package, controller.x_goal,controller.y_goal)
