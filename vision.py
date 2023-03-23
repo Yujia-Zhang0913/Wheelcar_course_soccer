@@ -96,6 +96,9 @@ class Robot(object):
 		self.raw_vel_x = raw_vel_x
 		self.raw_vel_y = raw_vel_y
 		self.raw_orientation = raw_orientation
+		#维护vx和vw变量
+		self.vx=0
+		self.vw=0
 
 
 

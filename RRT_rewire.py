@@ -19,7 +19,7 @@ class RRT_:
 
     def __init__(self,obstacles_point, start_point, end_point, planning_minx,planning_miny,planning_maxx,planning_maxy):
         """"由给定起点、终点初始化"""
-        self.one=22
+        self.one=50
         self.node_set = []
         self.start_point = start_point
         self.end_point = end_point

@@ -27,7 +27,7 @@ class Config:
         self.obstacle_cost_gain = 1.0
 
         self.tracking_dist = self.predict_time*self.max_speed
-        self.arrive_dist = 0.1
+        self.arrive_dist = 10
 
 class DWA:
     # heading保证机器人向目标点运动
@@ -51,7 +51,7 @@ class DWA:
             traj.append([robot_info[0],robot_info[1]])
             robot_info = self.motion(robot_info, dwaconfig)
         dist = dm(traj,planning_obs).min()
-        return 1 / dist
+        return 10000 / dist
 
     # velocity保证机器人尽量快
     def velocity_cost(self, now_v, max_v):
@@ -78,15 +78,15 @@ class DWA:
         best_traj = []
 
         # 动态窗口初始化
-        minV = max(dwaconfig.min_speed, robot_info[3] - dwaconfig.max_accel*dwaconfig.dt)
-        maxV = min(dwaconfig.max_speed, robot_info[3] + dwaconfig.max_accel*dwaconfig.dt)
-        minW = max(-dwaconfig.max_yawrate, robot_info[4] - dwaconfig.max_dyawrate*dwaconfig.dt)
-        maxW = min(dwaconfig.max_yawrate, robot_info[4] + dwaconfig.max_dyawrate*dwaconfig.dt)
+        # minV = max(dwaconfig.min_speed, robot_info[3] - dwaconfig.max_accel*dwaconfig.dt)
+        # maxV = min(dwaconfig.max_speed, robot_info[3] + dwaconfig.max_accel*dwaconfig.dt)
+        # minW = max(-dwaconfig.max_yawrate, robot_info[4] - dwaconfig.max_dyawrate*dwaconfig.dt)
+        # maxW = min(dwaconfig.max_yawrate, robot_info[4] + dwaconfig.max_dyawrate*dwaconfig.dt)
 
-        # minV = dwaconfig.min_speed
-        # maxV = dwaconfig.max_speed
-        # minW = -dwaconfig.max_yawrate
-        # maxW = dwaconfig.max_yawrate
+        minV = dwaconfig.min_speed
+        maxV = dwaconfig.max_speed
+        minW = -dwaconfig.max_yawrate
+        maxW = dwaconfig.max_yawrate
 
         possibleV_num = int((maxV - minV)/dwaconfig.v_reso) + 1
         possibleW_num = int((maxW - minW)/dwaconfig.yawrate_reso) + 1
@@ -109,7 +109,7 @@ class DWA:
                 cost2 = self.dist_cost(dwaconfig, midpos,robot_info_temp, planning_obs, 0.1)
                 cost3 = self.velocity_cost(robot_info_temp[3], dwaconfig.max_speed)
                 cost = cost1 * dwaconfig.to_goal_cost_gain + cost2 * dwaconfig.obstacle_cost_gain + cost3 * dwaconfig.speed_cost_gain
-                # print(vx, vw, cost1, cost2, cost3, cost)
+                print(vx, vw, cost1, cost2, cost3, cost)
                 if(cost < tot):
                     tot = cost
                     nvx = vx
