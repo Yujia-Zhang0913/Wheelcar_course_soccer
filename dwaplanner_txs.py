@@ -11,7 +11,7 @@ class Config:
         self.dt = 0.1  # [s] Time tick for motion prediction
 
         self.max_speed = 3500  # [mm/s]
-        self.min_speed = 0  # [mm/s]
+        self.min_speed = -3500  # [mm/s]
         self.max_accel = 4000  # [mm/ss]
         self.v_reso = self.max_accel*self.dt/10  # [m/s]  #可行速度为+-10个reso
         # print(self.v_reso)
