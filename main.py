@@ -37,19 +37,22 @@ if __name__ == '__main__':
 	# controller=Controller(path=path,robot=myRobot)
 	i=1
 	flag=0
+	path_flag=0
 	while True:
-		blue_robot_xy=[np.array([vision.blue_robot[i].x,vision.blue_robot[i].y]) for i in range(1,15) if vision.blue_robot[i].x!=-999999 and vision.blue_robot[i].y!=-999999]
-		yellow_robot_xy=[np.array([vision.yellow_robot[i].x,vision.yellow_robot[i].y]) for i in range(0,15) if vision.yellow_robot[i].x!=-999999 and vision.yellow_robot[i].y!=-999999]
-		obstacles=np.array(blue_robot_xy+yellow_robot_xy)
-		my_robot_xy=np.array([myRobot.x,myRobot.y])
-		# print(obstacles)
-		# 1. path planning & velocity planning
-		# Do something
-		# 想要使用反馈控制，下面三个选一个取消注释
-		if i==1 or i==3 or i==5:
-			rrt_=RRT_(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
-		else:
-			rrt_=RRT_(obstacles, my_robot_xy, [2400, 1500], -4950,-3694,4950,3696)
+		if path_flag==0:
+			blue_robot_xy=[np.array([vision.blue_robot[i].x,vision.blue_robot[i].y]) for i in range(1,15) if vision.blue_robot[i].x!=-999999 and vision.blue_robot[i].y!=-999999]
+			yellow_robot_xy=[np.array([vision.yellow_robot[i].x,vision.yellow_robot[i].y]) for i in range(0,15) if vision.yellow_robot[i].x!=-999999 and vision.yellow_robot[i].y!=-999999]
+			obstacles=np.array(blue_robot_xy+yellow_robot_xy)
+			my_robot_xy=np.array([myRobot.x,myRobot.y])
+			path_flag=1
+			# print(obstacles)
+			# 1. path planning & velocity planning
+			# Do something
+			# 想要使用反馈控制，下面三个选一个取消注释
+			if i==1 or i==3 or i==5:
+				rrt_=RRT_(obstacles, my_robot_xy, [-2400, -1500], -4950,-3694,4950,3696)
+			else:
+				rrt_=RRT_(obstacles, my_robot_xy, [2400, 1500], -4950,-3694,4950,3696)
 		# best_path_X,best_path_Y=a_star.Process()
 		# best_path_X,best_path_Y=rrt.Process()
 		best_path_X,best_path_Y=rrt_.Process()
@@ -83,6 +86,7 @@ if __name__ == '__main__':
 			flag=1
 		if flag==1:
 			i=i+1
+			path_flag=0
 			flag=0
 		# print(v,w,myRobot.x,myRobot.y,myRobot.orientation)
 		# 3. draw debug msg
