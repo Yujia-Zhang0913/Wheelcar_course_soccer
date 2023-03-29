@@ -130,7 +130,7 @@ class DWA:
 
         #返回
         index=np.argmax(self.evaluation)
-        print("max evaluation=",np.max(self.evaluation))
+        # print("max evaluation=",np.max(self.evaluation))
         #self.evaluation_list=self.evaluation.tolist()
         index_vw=floor(index/num_vx)
         index_vx=index%num_vx
