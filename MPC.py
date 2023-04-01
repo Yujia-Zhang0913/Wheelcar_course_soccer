@@ -40,6 +40,9 @@ class MPCPredict():
         self.CB=np.zeros((2,2))
 
         self.__initMX()
+
+        self.Debugger=None
+        self.action=None
         pass
     def __initMX(self):
         self.su_=np.zeros((self.p,self.m))
@@ -161,6 +164,8 @@ class MPCPredict():
         pass 
     def setAction(self,action):
         self.action=action
+    def setDebugger(self,Debugger):
+        self.Debugger=Debugger
     def Control(self,vx,vw):
         self.action.sendCommand(vx=vx, vy=0, vw=vw)
 

@@ -15,7 +15,7 @@ import numpy as np
 from scipy.signal import savgol_filter
 from scipy.interpolate import make_interp_spline
 from math import factorial
-
+from MPC import MPCPredict
 # another bassel
 
 # import numpy as np
@@ -126,6 +126,10 @@ if __name__ == '__main__':
 	# controller=Controller(path=path,robot=myRobot)
 	i=1
 	flag=1
+	if TRAJECTORY_METHOD=="MPC":
+		predictor=MPCPredict(myRobot.x,myRobot.y,myRobot.orientation)
+		predictor.setAction(action)
+		predictor.setDebuger(action)
 	while True:
 		blue_robot_xy=[np.array([vision.blue_robot[j].x,vision.blue_robot[j].y]) for j in range(1,15) if vision.blue_robot[j].x!=-999999 and vision.blue_robot[j].y!=-999999]
 		yellow_robot_xy=[np.array([vision.yellow_robot[j].x,vision.yellow_robot[j].y]) for j in range(0,15) if vision.yellow_robot[j].x!=-999999 and vision.yellow_robot[j].y!=-999999]
@@ -194,6 +198,8 @@ if __name__ == '__main__':
 			#dwa规划v和w
 			v,w,position_predict=dwa.plan(robot_info, dwaconfig, midpos, obstacles)
 			action.sendCommand(vx=v, vy=0, vw=w)
+
+			# 3. draw debug msg
 			package = Debug_Msgs()
 			# debugger.draw_point(package, controller.x_goal,controller.y_goal)
 			# debugger.draw_circle(package, myRobot.x, myRobot.y)
@@ -220,6 +226,6 @@ if __name__ == '__main__':
 			flag=1 #标记到达终点
 			i=i+1 #记录转向
 		# print(v,w,myRobot.x,myRobot.y,myRobot.orientation)
-		# 3. draw debug msg
+
 
 		time.sleep(0.02)
