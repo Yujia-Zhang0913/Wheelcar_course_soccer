@@ -13,11 +13,13 @@ import casadi
 from scipy.interpolate import make_interp_spline
 
 class MPCPredict():
-    def __init__(self,x,y,pace=100,m=4,p=10,Q=1,H=1) -> None:
+    def __init__(self,x,y,theta,pace=100,m=4,p=10,Q=1,H=1) -> None:
         # 同学们，导航规划作业中，机器人最大加速度4000mm/s^2 最大速度3500mm/s
         # 最大角加速度20rad/s^2 最大角速度15rad/s
         self.x=x 
         self.y=y
+        self.theta=theta
+        # calculate in radian
 
         self.m=m 
         self.p=p
@@ -50,33 +52,44 @@ class MPCPredict():
         self.sx_=self.sx_.reshape((self.p,1)).repeat(2,axis=1)
         print("su_",self.su_)
 
-        self.ubx_=np.tile(np.array([self.duv_max,self.duw_max]),(1,self.p))
-        self.lbx_=np.tile(np.array([-self.duv_max,-self.duw_max]),(1,self.p))
+        self.ubx_=np.tile(np.array([self.duv_max,self.duw_max]),(self.p,1)).reshape(2*self.p,1)
+        self.lbx_=np.tile(np.array([-self.duv_max,-self.duw_max]),(self.p,1)).reshape(2*self.p,1)
 
-        self.lba_0=np.tile(np.array([-self.uv_max,-self.uw_max]),(1,self.p))
-        self.uba_0=np.tile(np.array([self.uv_max,self.uw_max]),(1,self.p))
+        self.lba_0=np.tile(np.array([-self.uv_max,-self.uw_max]),(self.p,1)).reshape(2*self.p,1)
+        self.uba_0=np.tile(np.array([self.uv_max,self.uw_max]),(self.p,1)).reshape(2*self.p,1)
+
+        self.R_qp=np.zeros((self.p*2,1))
+        self.R_qp_index=np.zeros(self.p).astype(int)
+        for i in range(self.p):
+            self.R_qp_index[i]=i*2
+        # self.R_qp_index.astype(int)
 
     def __reMX(self):
-        self.CB=np.array([np.cos(self.theta),0],[np.sin(self.theta),0])
-        self.su=np.multiply(self.su_,np.tile(self.CB,(self.m,self.p)))
+        # qp means the matrix used for QP splver
+        self.CB=np.array([[np.cos(self.theta),0],[np.sin(self.theta),0]])
+        # print(np.tile(self.CB,(self.m,self.p)))
+        self.su=np.multiply(self.su_,np.tile(self.CB,(self.p,self.m)))
 
-        self.H_qp=2*self.Q*self.su.T*self.su.T+self.H 
+        self.H_qp=2*self.Q*np.matmul(self.su.T,self.su)+self.H 
 
         self.__reRefPath()
         self.sx=np.multiply(self.sx_+1,np.tile(np.array([self.delta_x,self.delta_y]).reshape(1,2),(self.p,1)))
         # 这里因为 y就是x的前两个维度  所以将sx delta x k 与 I yk合并
-        self.E_qp_=-(self.sx+np.tile(np.array([self.x,self.y]).reshape(1,2),(self.p,1)))
-        self.g_qp=-2*self.Q*self.su_*(self.R_qp+self.E_qp)
+        self.E_qp_=-(self.sx+np.tile(np.array([self.x,self.y]).reshape(1,2),(self.p,1))).reshape(2*self.p,1)
+        print(self.E_qp_,self.R_qp.shape)
+        self.g_qp=-2*self.Q*np.matmul(self.su_.T,(self.R_qp+self.E_qp_).reshape(2*self.p,1))
 
         self.uba_=self.uba_0+self.E_qp_
         self.lba_=self.lba_0+self.E_qp_
         self.A_qp=np.ones((self.p*2,1))
 
-    def reCurrentState(self,x,y,v,w):
+    def reCurrentState(self,x,y,theta,v,w):
         self.delta_x=x-self.x
         self.delta_y=y-self.y
+        self.delta_theta=theta-self.theta
         self.x=x 
         self.y=y 
+        self.theta=theta
         self.v=v 
         self.w=w 
     def reObstacles(self,obstacles):
@@ -110,9 +123,10 @@ class MPCPredict():
         self.Control()
         pass
     def __reRefPath(self):
-        self.R_qp=np.zeros((self.p,2))
-        self.R_qp[:,0]=self.xpos[self.curSteps:self.curSteps+self.p]
-        self.R_qp[:,1]=self.ypos[self.curSteps:self.curSteps+self.p]
+        
+        self.R_qp[self.R_qp_index,0]=self.xpos[self.curSteps:self.curSteps+self.p]
+        self.R_qp[self.R_qp_index+1,0]=self.ypos[self.curSteps:self.curSteps+self.p]
+        
         self.curSteps+=1
         
         pass 
@@ -123,6 +137,7 @@ class MPCPredict():
         seg_x=np.abs(path_x[1:]-path_x[:-1])
         seg_y=np.abs(path_y[1:]-path_y[:-1])
         t=np.zeros(path_x.shape[0])
+        # t[0]=0.
         t[1:]=(seg_x+seg_y)/self.pace
         for i in range(1,path_x.shape[0]):
             t[i]+=t[i-1]
@@ -133,8 +148,10 @@ class MPCPredict():
         # self.xpos=np.interp.int
 
         #平滑处理后
-        steps = np.linspace(0, self.steps, int(self.steps))  # np.linspace 等差数列,从x.min()到x.max()生成300个数，便于后续插值
-        print(steps)
+        steps = np.linspace(0.1, self.steps-0.01, int(self.steps))  # np.linspace 等差数列,从x.min()到x.max()生成300个数，便于后续插值
+        # print(steps)
+        # print(make_interp_spline(t, path_x))
+        # self.pos = make_interp_spline(t, path)(steps)
         self.xpos = make_interp_spline(t, path_x)(steps)
         self.ypos = make_interp_spline(t, path_y)(steps)
         self.curSteps=0
@@ -161,7 +178,7 @@ class MPCPredict():
 
 
 if __name__=="__main__":
-    predictor=MPCPredict(0,0)
-    predictor.reCurrentState(0,0,0,0)
-    predictor.RefreshPath([100,200,300],[100,300,400])
+    predictor=MPCPredict(0,0,0.2)
+    predictor.reCurrentState(0,0,0,0,0)
+    predictor.RefreshPath([100,200,300,600],[100,300,400,200])
     predictor.rePredict()
