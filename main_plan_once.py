@@ -16,6 +16,16 @@ from scipy.signal import savgol_filter
 from scipy.interpolate import make_interp_spline
 from math import factorial
 
+def draw_rrt_tree(start_node,package):
+	current_node=start_node
+	# print(start_node.child)
+	queue=[]
+	queue.extend(current_node.child)
+	while queue !=[]:
+		draw_node=queue.pop(0)
+		debugger.draw_line(package, draw_node.father.point[0], draw_node.father.point[1], draw_node.point[0], draw_node.point[1])
+		queue.extend(draw_node.child)
+
 def evaluate_bezier(points, total):
 	def bezier_Func(points):
 		def C_(n, k):
@@ -25,6 +35,7 @@ def evaluate_bezier(points, total):
 	bezier_point = bezier_Func(points)
 	new_points = np.array([bezier_point(t) for t in np.linspace(0, 1, total)])
 	return new_points[:, 0], new_points[:, 1]
+
 def B_smooth(x,y,k):
 	 # n表示曲线的点数减1，因为下标从0开始；也表示B样条的基函数要计算到n
 	n = len(x) - 1
@@ -119,10 +130,12 @@ if __name__ == '__main__':
 			else:
 				start=[-2400,-1500]
 				target=[2400,1500]
-			rrt_=RRT_(obstacles, my_robot_xy, target, -4950,-3694,4950,3696)
-			# best_path_X,best_path_Y=a_star.Process()
+			# rrt_=RRT_(obstacles, my_robot_xy, target, -4950,-3696,4950,3696)
+			a_star=A_star(obstacles, my_robot_xy, target, -5000,-3750,5000,3750)
+			# rrt=RRT(obstacles, my_robot_xy, target, -4950,-3696,4950,3696)
+			best_path_X,best_path_Y=a_star.Process()
 			# best_path_X,best_path_Y=rrt.Process()
-			best_path_X,best_path_Y=rrt_.Process()
+			# best_path_X,best_path_Y=rrt_.Process()
 			best_path_X_filtered=[]
 			best_path_Y_filtered=[]
 			##贝塞尔
@@ -190,6 +203,10 @@ if __name__ == '__main__':
 		debugger.draw_point(package,position_predict[0],position_predict[1],color='r')#规划处的vw在predict_time后到达的位置（红色）
 		debugger.draw_point(package,start[0],start[1],color='b') #起点(蓝色)
 		debugger.draw_point(package,target[0],target[1],color='g') #终点（绿色）
+
+		# draw_rrt_tree(rrt.start_node,package)
+		# draw_rrt_tree(rrt_.start_node,package)
+
 		debugger.send(package)
 
 		time.sleep(0.02)
