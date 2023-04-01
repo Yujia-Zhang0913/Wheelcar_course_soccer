@@ -7,6 +7,11 @@ import numpy as np
 # These pre-built packages are linked against OpenBLAS and include all the optional extensions (DSDP, FFTW, GLPK, and GSL).
 
 import casadi 
+
+# import numpy as np
+# from matplotlib import pyplot as plt
+from scipy.interpolate import make_interp_spline
+
 class MPCPredict():
     def __init__(self,pace=100,m=4,p=6,Q=1,H=1) -> None:
         # 同学们，导航规划作业中，机器人最大加速度4000mm/s^2 最大速度3500mm/s
@@ -104,7 +109,7 @@ class MPCPredict():
     def __reRefPath(self):
         self.R_qp=np.zeros((self.p,2))
         pass 
-    def refreshPath(self,path_x,path_y):
+    def RefreshPath(self,path_x,path_y):
         print(self.path.shape)
         seg_x=np.abs(self.path[1:,0]-self.path[:-1,0])
         seg_y=np.abs(self.path[1:,1]-self.path[:-1,1])
@@ -112,7 +117,22 @@ class MPCPredict():
         self.Length=np.sum(seg_x)+np.sum(seg_y)
         self.steps=self.Length//self.pace+1
 
-        
+        self.xpos=np.interp.int
+
+        Size = 30
+        x = np.arange(Size)
+        y = np.random.randint(1, Size, Size)
+
+        #平滑前
+        plt.plot(x, y,'r')
+        plt.show()
+
+        #平滑处理后
+        x_smooth = np.linspace(x.min(), x.max(), 500)  # np.linspace 等差数列,从x.min()到x.max()生成300个数，便于后续插值
+        y_smooth = make_interp_spline(x, y)(x_smooth)
+        plt.plot(x_smooth, y_smooth,'b')
+        plt.show()
+
         pass 
     def Control(self):
         
@@ -133,5 +153,5 @@ class MPCPredict():
 
 
 
-# if __name__=="__main__":
-    # print(test_for_cvxopt())
+if __name__=="__main__":
+    predictor=MPCPredict()
