@@ -13,9 +13,12 @@ import casadi
 from scipy.interpolate import make_interp_spline
 
 class MPCPredict():
-    def __init__(self,pace=100,m=4,p=6,Q=1,H=1) -> None:
+    def __init__(self,x,y,pace=100,m=4,p=10,Q=1,H=1) -> None:
         # 同学们，导航规划作业中，机器人最大加速度4000mm/s^2 最大速度3500mm/s
         # 最大角加速度20rad/s^2 最大角速度15rad/s
+        self.x=x 
+        self.y=y
+
         self.m=m 
         self.p=p
         self.Q=1
@@ -100,7 +103,7 @@ class MPCPredict():
         print(S)
 
 
-        r = S(h=H, g=g, a=A, lbx=lbx, ubx=ubx,a=A,lba=lba,uba=uba)
+        r = S(h=H, g=g, a=A, lbx=lbx, ubx=ubx,A=A,lba=lba,uba=uba)
         x_opt = r['x']
         print('x_opt: ', x_opt)
 
@@ -108,20 +111,33 @@ class MPCPredict():
         pass
     def __reRefPath(self):
         self.R_qp=np.zeros((self.p,2))
+        self.R_qp[:,0]=self.xpos[self.curSteps:self.curSteps+self.p]
+        self.R_qp[:,1]=self.ypos[self.curSteps:self.curSteps+self.p]
+        self.curSteps+=1
+        
         pass 
     def RefreshPath(self,path_x,path_y):
-        print(self.path.shape)
-        seg_x=np.abs(self.path[1:,0]-self.path[:-1,0])
-        seg_y=np.abs(self.path[1:,1]-self.path[:-1,1])
-        x=(seg_x+seg_y)/self.pace
+        path_x=np.array(path_x)
+        path_y=np.array(path_y)
+        print(path_x,path_x.shape)
+        seg_x=np.abs(path_x[1:]-path_x[:-1])
+        seg_y=np.abs(path_y[1:]-path_y[:-1])
+        t=np.zeros(path_x.shape[0])
+        t[1:]=(seg_x+seg_y)/self.pace
+        for i in range(1,path_x.shape[0]):
+            t[i]+=t[i-1]
+        print(seg_x,seg_y,t)
         self.Length=np.sum(seg_x)+np.sum(seg_y)
-        self.steps=self.Length//self.pace+1
+        self.steps=self.Length//self.pace
 
-        self.xpos=np.interp.int
+        # self.xpos=np.interp.int
 
         #平滑处理后
-        x_smooth = np.linspace(0, self.steps, self.steps)  # np.linspace 等差数列,从x.min()到x.max()生成300个数，便于后续插值
-        y_smooth = make_interp_spline(t, path_x)(x_smooth)
+        steps = np.linspace(0, self.steps, int(self.steps))  # np.linspace 等差数列,从x.min()到x.max()生成300个数，便于后续插值
+        print(steps)
+        self.xpos = make_interp_spline(t, path_x)(steps)
+        self.ypos = make_interp_spline(t, path_y)(steps)
+        self.curSteps=0
 
 
         pass 
@@ -145,4 +161,7 @@ class MPCPredict():
 
 
 if __name__=="__main__":
-    predictor=MPCPredict()
+    predictor=MPCPredict(0,0)
+    predictor.reCurrentState(0,0,0,0)
+    predictor.RefreshPath([100,200,300],[100,300,400])
+    predictor.rePredict()
