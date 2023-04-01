@@ -34,11 +34,13 @@ class Debugger(object):
         line.FORWARD = True
         line.BACK = True
     
-    def draw_lines(self, package, x1, y1, x2, y2):
+    def draw_lines(self, package, x1, y1, x2, y2,color='w'):
+        idx=['w','bk','r','g','b'].index(color)
+        COLOR = [Debug_Msg.WHITE,Debug_Msg.BLACK,Debug_Msg.RED,Debug_Msg.GREEN,Debug_Msg.BLUE][idx]
         for i in range(len(x1)):
             msg = package.msgs.add()
             msg.type = Debug_Msg.LINE
-            msg.color = Debug_Msg.WHITE
+            msg.color = COLOR
             line = msg.line
             line.start.x = x1[i]
             line.start.y = y1[i]
@@ -47,11 +49,14 @@ class Debugger(object):
             line.FORWARD = True
             line.BACK = True
 
-    def draw_point(self, package, x, y):
+    def draw_point(self, package, x, y,color='w'):
         msg = package.msgs.add()
+        idx=['w','bk','r','g','b'].index(color)
+        COLOR = [Debug_Msg.WHITE,Debug_Msg.BLACK,Debug_Msg.RED,Debug_Msg.GREEN,Debug_Msg.BLUE][idx]
         # line 1
         msg.type = Debug_Msg.LINE
-        msg.color = Debug_Msg.WHITE
+        msg.color = COLOR
+        # msg.color = Debug_Msg.WHITE
         line = msg.line
         line.start.x = x + 50
         line.start.y = y + 50
@@ -62,7 +67,7 @@ class Debugger(object):
         # line 2
         msg = package.msgs.add()
         msg.type = Debug_Msg.LINE
-        msg.color = Debug_Msg.WHITE
+        msg.color = COLOR
         line = msg.line
         line.start.x = x - 50
         line.start.y = y + 50
