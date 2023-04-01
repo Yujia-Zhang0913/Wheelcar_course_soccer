@@ -36,7 +36,7 @@ from MPC import MPCPredict
 # plt.plot(x_smooth, y_smooth,'b')
 # plt.show()
 PLANNING_METHOD='RRT'
-TRAJECTORY_METHOD='DWA'
+TRAJECTORY_METHOD='MPC'
 # alter DWA FEEDBACK MPC
 
 def evaluate_bezier(points, total):
@@ -129,7 +129,7 @@ if __name__ == '__main__':
 	if TRAJECTORY_METHOD=="MPC":
 		predictor=MPCPredict(myRobot.x,myRobot.y,myRobot.orientation)
 		predictor.setAction(action)
-		predictor.setDebuger(action)
+		predictor.setDebugger(debugger)
 	while True:
 		blue_robot_xy=[np.array([vision.blue_robot[j].x,vision.blue_robot[j].y]) for j in range(1,15) if vision.blue_robot[j].x!=-999999 and vision.blue_robot[j].y!=-999999]
 		yellow_robot_xy=[np.array([vision.yellow_robot[j].x,vision.yellow_robot[j].y]) for j in range(0,15) if vision.yellow_robot[j].x!=-999999 and vision.yellow_robot[j].y!=-999999]
@@ -138,7 +138,7 @@ if __name__ == '__main__':
 		# print(obstacles)
 		# 1. path planning & velocity planning
 		# Do something
-		# 想要使用反馈控制，下面三个选一个取消注释
+		package = Debug_Msgs()
 		if flag==1:#若到达终点则进行重规划
 			if i%2==1:
 				start=[2400,1500]
@@ -150,6 +150,7 @@ if __name__ == '__main__':
 			# best_path_X,best_path_Y=a_star.Process()
 			# best_path_X,best_path_Y=rrt.Process()
 			best_path_X,best_path_Y=rrt_.Process()
+
 			best_path_X_filtered=[]
 			best_path_Y_filtered=[]
 			##贝塞尔
@@ -169,6 +170,10 @@ if __name__ == '__main__':
 			best_path_X_filtered,best_path_Y_filtered=B_smooth(best_path_X,best_path_Y,4)
 			best_path_X=np.append(best_path_X,target[0])#最后加上终点的精确坐标，以防差一点到不了终点
 			best_path_Y=np.append(best_path_Y,target[1])
+			if TRAJECTORY_METHOD=="MPC":
+				print(best_path_X.shape)
+				predictor.RefreshPath(best_path_X,best_path_Y)
+
 			flag=0
 			# print(np.array([best_path_X_filtered,best_path_Y_filtered]).T)
 		if TRAJECTORY_METHOD=="FEEDBACK":
@@ -200,18 +205,11 @@ if __name__ == '__main__':
 			action.sendCommand(vx=v, vy=0, vw=w)
 
 			# 3. draw debug msg
-			package = Debug_Msgs()
+			
 			# debugger.draw_point(package, controller.x_goal,controller.y_goal)
 			# debugger.draw_circle(package, myRobot.x, myRobot.y)
 			# debugger.draw_lines(package, x1=best_path_X[0:len(best_path_X)-2], y1=best_path_Y[0:len(best_path_X)-2], x2=best_path_X[1:len(best_path_X)-1], y2=best_path_Y[1:len(best_path_X)-1])
-			debugger.draw_lines(package, x1=best_path_X[:-1], y1=best_path_Y[:-1], x2=best_path_X[1:], y2=best_path_Y[1:])		
-			debugger.draw_lines(package, x1=best_path_X_filtered[:-1], y1=best_path_Y_filtered[:-1], x2=best_path_X_filtered[1:], y2=best_path_Y_filtered[1:],color='g')		
-			
-			debugger.draw_point(package,midpos[0],midpos[1])#追踪的midpos（白色）
-			debugger.draw_point(package,position_predict[0],position_predict[1],color='r')#规划处的vw在predict_time后到达的位置（红色）
-			debugger.draw_point(package,start[0],start[1],color='b') #起点(蓝色)
-			debugger.draw_point(package,target[0],target[1],color='g') #终点（绿色）
-			debugger.send(package)
+
 
 
 
@@ -219,6 +217,9 @@ if __name__ == '__main__':
 			myRobot.vw=w
 
 		elif TRAJECTORY_METHOD=="MPC":
+			predictor.reCurrentState(myRobot.x,myRobot.y,myRobot.orientation,myRobot.vx,myRobot.vw)
+			
+			predictor.rePredict()
 			pass 
 		#判断是否到达终点
 		# dist_to_target=np.linalg.norm(my_robot_xy-np.array(target))
@@ -227,5 +228,12 @@ if __name__ == '__main__':
 			i=i+1 #记录转向
 		# print(v,w,myRobot.x,myRobot.y,myRobot.orientation)
 
-
+		debugger.draw_lines(package, x1=best_path_X[:-1], y1=best_path_Y[:-1], x2=best_path_X[1:], y2=best_path_Y[1:])		
+		debugger.draw_lines(package, x1=best_path_X_filtered[:-1], y1=best_path_Y_filtered[:-1], x2=best_path_X_filtered[1:], y2=best_path_Y_filtered[1:],color='g')		
+		
+		debugger.draw_point(package,midpos[0],midpos[1])#追踪的midpos（白色）
+		debugger.draw_point(package,position_predict[0],position_predict[1],color='r')#规划处的vw在predict_time后到达的位置（红色）
+		debugger.draw_point(package,start[0],start[1],color='b') #起点(蓝色)
+		debugger.draw_point(package,target[0],target[1],color='g') #终点（绿色）
+		debugger.send(package)
 		time.sleep(0.02)

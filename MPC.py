@@ -79,13 +79,13 @@ class MPCPredict():
         self.sx=np.multiply(self.sx_+1,np.tile(np.array([self.delta_x,self.delta_y]).reshape(1,2),(self.p,1)))
         # 这里因为 y就是x的前两个维度  所以将sx delta x k 与 I yk合并
         self.E_qp_=-(self.sx+np.tile(np.array([self.x,self.y]).reshape(1,2),(self.p,1))).reshape(2*self.p,1)
-        print(self.E_qp_,self.R_qp.shape)
+        # print(self.E_qp_,self.R_qp.shape)
         self.g_qp=-2*self.Q*np.matmul(self.su_.T,(self.R_qp+self.E_qp_).reshape(2*self.p,1))
 
         # self.su_inv=self.su.i
         self.uba_=self.uba_0+self.E_qp_
         self.lba_=self.lba_0+self.E_qp_
-        print(self.lba_.shape,self.uba_.shape)
+        # print(self.lba_.shape,self.uba_.shape)
         self.A_qp=self.su
 
     def reCurrentState(self,x,y,theta,v,w):
@@ -104,6 +104,13 @@ class MPCPredict():
         # self.__reRefPath()
         self.__reMX()
 
+        print("\n----------------H_qp-------------\n",self.H_qp)
+        print("\n----------------A_qp-------------\n",self.A_qp)
+        print("\n----------------g_qp-------------\n",self.g_qp)
+        print("\n----------------lbx_-------------\n",self.lbx_)
+        print("\n----------------ubx_-------------\n",self.ubx_)
+        print("\n----------------lba_-------------\n",self.lba_)
+        print("\n----------------uba_-------------\n",self.uba_)
 
         H = casadi.DM(self.H_qp)
         A = casadi.DM(self.A_qp)
@@ -136,17 +143,19 @@ class MPCPredict():
         
         pass 
     def RefreshPath(self,path_x,path_y):
-        path_x=np.array(path_x)
-        path_y=np.array(path_y)
-        print(path_x,path_x.shape)
+        # path_x=np.array(path_x)
+        # path_y=np.array(path_y)
+        print(path_x.shape)
         seg_x=np.abs(path_x[1:]-path_x[:-1])
         seg_y=np.abs(path_y[1:]-path_y[:-1])
         t=np.zeros(path_x.shape[0])
         # t[0]=0.
         t[1:]=(seg_x+seg_y)/self.pace
         for i in range(1,path_x.shape[0]):
+            if t[i]<=0:
+                t[i]=0.1
             t[i]+=t[i-1]
-        print(seg_x,seg_y,t)
+        print('seg x \n',seg_x,'seg y \n',seg_y,'t \n',t)
         self.Length=np.sum(seg_x)+np.sum(seg_y)
         self.steps=self.Length//self.pace
 
@@ -154,7 +163,7 @@ class MPCPredict():
 
         #平滑处理后
         steps = np.linspace(0.1, self.steps-0.01, int(self.steps))  # np.linspace 等差数列,从x.min()到x.max()生成300个数，便于后续插值
-        # print(steps)
+        print('steps\n',steps)
         # print(make_interp_spline(t, path_x))
         # self.pos = make_interp_spline(t, path)(steps)
         self.xpos = make_interp_spline(t, path_x)(steps)
