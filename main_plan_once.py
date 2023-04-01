@@ -35,7 +35,9 @@ from math import factorial
 # y_smooth = make_interp_spline(x, y)(x_smooth)
 # plt.plot(x_smooth, y_smooth,'b')
 # plt.show()
-
+PLANNING_METHOD='RRT'
+TRAJECTORY_METHOD='DWA'
+# alter DWA FEEDBACK MPC
 
 def evaluate_bezier(points, total):
 	def bezier_Func(points):
@@ -165,34 +167,53 @@ if __name__ == '__main__':
 			best_path_Y=np.append(best_path_Y,target[1])
 			flag=0
 			# print(np.array([best_path_X_filtered,best_path_Y_filtered]).T)
-		# 想要使用反馈控制，取消下三行注释
-		# path=np.transpose([best_path_X,best_path_Y])
-		# controller=Controller(path=path,robot=myRobot)
-		# print(best_path_X,best_path_Y)
+		if TRAJECTORY_METHOD=="FEEDBACK":
+			# 想要使用反馈控制，取消下三行注释
+			path=np.transpose([best_path_X,best_path_Y])
+			controller=Controller(path=path,robot=myRobot)
+			print(best_path_X,best_path_Y)
 
-		# 2. send command
-		# 想要使用反馈控制，取消下三行注释
-		# v,w=controller.refresh()
-		# action.sendCommand(vx=v, vy=0, vw=w)
-		# print(v,w,myRobot.x,myRobot.y,myRobot.orientation)
+			# 2. send command
+			# 想要使用反馈控制，取消下三行注释
+			v,w=controller.refresh()
+			action.sendCommand(vx=v, vy=0, vw=w)
+			print(v,w,myRobot.x,myRobot.y,myRobot.orientation)
+		elif TRAJECTORY_METHOD=="DWA":
+			# # 想要使用反馈控制，注释下10行
+			dwa=DWA()
+			dwaconfig=Config(100)
+			robot_info=[myRobot.x,myRobot.y,myRobot.orientation,myRobot.vx,myRobot.vw]
+			dis_temp=np.hypot([best_path_X[i]-myRobot.x for i in range(len(best_path_X))],[best_path_Y[i]-myRobot.y for i in range(len(best_path_Y))]).tolist()
+			# dis_index=dis_temp.index(min(dis_temp))
+			dis_index=np.argmin(dis_temp)
+			#选取跟踪点mid_pos
+			index_delta=12
+			if dis_index+index_delta+1>len(best_path_Y):
+				dis_index=len(best_path_Y)-index_delta-1
+			midpos=[best_path_X[dis_index+index_delta],best_path_Y[dis_index+index_delta]]
+			#dwa规划v和w
+			v,w,position_predict=dwa.plan(robot_info, dwaconfig, midpos, obstacles)
+			action.sendCommand(vx=v, vy=0, vw=w)
+			package = Debug_Msgs()
+			# debugger.draw_point(package, controller.x_goal,controller.y_goal)
+			# debugger.draw_circle(package, myRobot.x, myRobot.y)
+			# debugger.draw_lines(package, x1=best_path_X[0:len(best_path_X)-2], y1=best_path_Y[0:len(best_path_X)-2], x2=best_path_X[1:len(best_path_X)-1], y2=best_path_Y[1:len(best_path_X)-1])
+			debugger.draw_lines(package, x1=best_path_X[:-1], y1=best_path_Y[:-1], x2=best_path_X[1:], y2=best_path_Y[1:])		
+			debugger.draw_lines(package, x1=best_path_X_filtered[:-1], y1=best_path_Y_filtered[:-1], x2=best_path_X_filtered[1:], y2=best_path_Y_filtered[1:],color='g')		
+			
+			debugger.draw_point(package,midpos[0],midpos[1])#追踪的midpos（白色）
+			debugger.draw_point(package,position_predict[0],position_predict[1],color='r')#规划处的vw在predict_time后到达的位置（红色）
+			debugger.draw_point(package,start[0],start[1],color='b') #起点(蓝色)
+			debugger.draw_point(package,target[0],target[1],color='g') #终点（绿色）
+			debugger.send(package)
 
-		# 想要使用反馈控制，注释下10行
-		dwa=DWA()
-		dwaconfig=Config(100)
-		robot_info=[myRobot.x,myRobot.y,myRobot.orientation,myRobot.vx,myRobot.vw]
-		dis_temp=np.hypot([best_path_X[i]-myRobot.x for i in range(len(best_path_X))],[best_path_Y[i]-myRobot.y for i in range(len(best_path_Y))]).tolist()
-		# dis_index=dis_temp.index(min(dis_temp))
-		dis_index=np.argmin(dis_temp)
-		#选取跟踪点mid_pos
-		index_delta=12
-		if dis_index+index_delta+1>len(best_path_Y):
-			dis_index=len(best_path_Y)-index_delta-1
-		midpos=[best_path_X[dis_index+index_delta],best_path_Y[dis_index+index_delta]]
-		#dwa规划v和w
-		v,w,position_predict=dwa.plan(robot_info, dwaconfig, midpos, obstacles)
-		action.sendCommand(vx=v, vy=0, vw=w)
-		myRobot.vx=v #更新信息
-		myRobot.vw=w
+
+
+			myRobot.vx=v #更新信息
+			myRobot.vw=w
+
+		elif TRAJECTORY_METHOD=="MPC":
+			pass 
 		#判断是否到达终点
 		# dist_to_target=np.linalg.norm(my_robot_xy-np.array(target))
 		if np.linalg.norm(my_robot_xy-np.array(target))<80:
@@ -200,17 +221,5 @@ if __name__ == '__main__':
 			i=i+1 #记录转向
 		# print(v,w,myRobot.x,myRobot.y,myRobot.orientation)
 		# 3. draw debug msg
-		package = Debug_Msgs()
-		# debugger.draw_point(package, controller.x_goal,controller.y_goal)
-		# debugger.draw_circle(package, myRobot.x, myRobot.y)
-		# debugger.draw_lines(package, x1=best_path_X[0:len(best_path_X)-2], y1=best_path_Y[0:len(best_path_X)-2], x2=best_path_X[1:len(best_path_X)-1], y2=best_path_Y[1:len(best_path_X)-1])
-		debugger.draw_lines(package, x1=best_path_X[:-1], y1=best_path_Y[:-1], x2=best_path_X[1:], y2=best_path_Y[1:])		
-		debugger.draw_lines(package, x1=best_path_X_filtered[:-1], y1=best_path_Y_filtered[:-1], x2=best_path_X_filtered[1:], y2=best_path_Y_filtered[1:],color='g')		
-		
-		debugger.draw_point(package,midpos[0],midpos[1])#追踪的midpos（白色）
-		debugger.draw_point(package,position_predict[0],position_predict[1],color='r')#规划处的vw在predict_time后到达的位置（红色）
-		debugger.draw_point(package,start[0],start[1],color='b') #起点(蓝色)
-		debugger.draw_point(package,target[0],target[1],color='g') #终点（绿色）
-		debugger.send(package)
 
 		time.sleep(0.02)

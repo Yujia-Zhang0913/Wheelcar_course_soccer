@@ -158,7 +158,6 @@ class MPCPredict():
         self.ypos = make_interp_spline(t, path_y)(steps)
         self.curSteps=0
 
-
         pass 
     def setAction(self,action):
         self.action=action
