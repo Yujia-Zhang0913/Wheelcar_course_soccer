@@ -19,7 +19,7 @@ class RRT_:
 
     def __init__(self,obstacles_point, start_point, end_point, planning_minx,planning_miny,planning_maxx,planning_maxy):
         """"由给定起点、终点初始化"""
-        self.one=175
+        self.one=175 #步长
         self.node_set = []
         self.start_point = start_point
         self.end_point = end_point
@@ -39,7 +39,7 @@ class RRT_:
             child 子节点
         """
         def __init__(self,point,father,child,endpoint,startpoint):
-            self.one=50
+            self.one=500 #离最近障碍物的最小距离
             self.point = point
             self.father = father
             self.child = child
@@ -109,7 +109,7 @@ class RRT_:
                 if near_node.value+self.one<node.value:
                     node.father = near_node
             for obstacles_point in self.obstacles_point:
-                if np.linalg.norm(obstacles_point-near_node.point)<150:
+                if np.linalg.norm(obstacles_point-near_node.point)<near_node.one:
                     flag = 1
                     break 
         nearest_node.child.append(near_node)     
