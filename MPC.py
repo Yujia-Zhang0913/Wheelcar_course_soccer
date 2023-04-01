@@ -52,8 +52,8 @@ class MPCPredict():
         self.sx_=self.sx_.reshape((self.p,1)).repeat(2,axis=1)
         print("su_",self.su_)
 
-        self.ubx_=np.tile(np.array([self.duv_max,self.duw_max]),(self.p,1)).reshape(2*self.p,1)
-        self.lbx_=np.tile(np.array([-self.duv_max,-self.duw_max]),(self.p,1)).reshape(2*self.p,1)
+        self.ubx_=np.tile(np.array([self.duv_max,self.duw_max]),(self.m,1)).reshape(2*self.m,1)
+        self.lbx_=np.tile(np.array([-self.duv_max,-self.duw_max]),(self.m,1)).reshape(2*self.m,1)
 
         self.lba_0=np.tile(np.array([-self.uv_max,-self.uw_max]),(self.p,1)).reshape(2*self.p,1)
         self.uba_0=np.tile(np.array([self.uv_max,self.uw_max]),(self.p,1)).reshape(2*self.p,1)
@@ -79,9 +79,11 @@ class MPCPredict():
         print(self.E_qp_,self.R_qp.shape)
         self.g_qp=-2*self.Q*np.matmul(self.su_.T,(self.R_qp+self.E_qp_).reshape(2*self.p,1))
 
+        # self.su_inv=self.su.i
         self.uba_=self.uba_0+self.E_qp_
         self.lba_=self.lba_0+self.E_qp_
-        self.A_qp=np.ones((self.p*2,1))
+        print(self.lba_.shape,self.uba_.shape)
+        self.A_qp=self.su
 
     def reCurrentState(self,x,y,theta,v,w):
         self.delta_x=x-self.x
@@ -116,11 +118,11 @@ class MPCPredict():
         print(S)
 
 
-        r = S(h=H, g=g, a=A, lbx=lbx, ubx=ubx,A=A,lba=lba,uba=uba)
+        r = S(h=H, g=g, a=A, lbx=lbx, ubx=ubx,lba=lba,uba=uba)
         x_opt = r['x']
         print('x_opt: ', x_opt)
 
-        self.Control()
+        self.Control(x_opt[0],x_opt[1])
         pass
     def __reRefPath(self):
         
@@ -158,8 +160,10 @@ class MPCPredict():
 
 
         pass 
-    def Control(self):
-        
+    def setAction(self,action):
+        self.action=action
+    def Control(self,vx,vw):
+        self.action.sendCommand(vx=vx, vy=0, vw=vw)
 
         pass 
 
@@ -179,6 +183,7 @@ class MPCPredict():
 
 if __name__=="__main__":
     predictor=MPCPredict(0,0,0.2)
+    predictor.setAction()
     predictor.reCurrentState(0,0,0,0,0)
     predictor.RefreshPath([100,200,300,600],[100,300,400,200])
     predictor.rePredict()
