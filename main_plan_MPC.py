@@ -9,8 +9,8 @@ from RRT_plan import RRT
 from RRT_rewire import RRT_
 # from dwaplanner import DWA
 # from dwaplanner import Config
-from dwaplanner_txs import DWA
-from dwaplanner_txs import Config
+from dwaplanner import DWA
+from dwaplanner import Config
 import numpy as np
 from scipy.signal import savgol_filter
 from scipy.interpolate import make_interp_spline

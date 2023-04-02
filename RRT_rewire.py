@@ -104,6 +104,7 @@ class RRT_:
             d = (temp_point-nearest_node.point)/dist
             near_node = RRT_.RRT_Tree(nearest_node.point+d*self.one,nearest_node,[],nearest_node.endpoint,nearest_node.startpoint)
             for node in node_near_set:
+                #RRT*相关路径优化
                 if near_node.value>node.value+self.one:
                     near_node.father = node
                 if near_node.value+self.one<node.value:

@@ -37,7 +37,7 @@ class A_star:
         self.planning_maxy = planning_maxy
         self.width = int((planning_maxx - planning_minx)/self.one+1)
         self.height = int((planning_maxy - planning_miny)/self.one+1)
-        self.map = np.empty([self.width, self.height], dtype=float)
+        self.map = np.empty([self.width, self.height], dtype=int)
         for i in range(self.width):
             for j in range(self.height):
                 self.temp=np.hypot(obstacles_point[:,0]-(i*self.one+planning_minx),obstacles_point[:,1]-(j*self.one+planning_miny))
@@ -67,7 +67,6 @@ class A_star:
             self.endpoint = endpoint  # 终点坐标
             self.father = None        # 父节点，用来回溯最短路
             self.g = g                # 现有代价g值，是由起点到该点的累加值
-            # self.h =m.hypot((point[0]-endpoint[0]),(point[1]-endpoint[1]))
             self.h =m.sqrt(2)*min((point[0]-endpoint[0]),(point[1]-endpoint[1]))+abs((point[0]-endpoint[0])-(point[1]-endpoint[1]))
             self.f = self.g + self.h
 

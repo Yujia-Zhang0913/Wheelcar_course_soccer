@@ -1,1 +1,1 @@
-不要管main1.py这个是轮式画图的
+# 在main文件中根据注释后面的选项进行修改，其中，PLANNING_METHOD表示对路径规划的选择；TRAJECTORY_METHOD表示对轨迹规划的选择DRAW_RRT表示是否需要在规划RRT时显示当前RRT树；FILTERED_PATH表示是否选用平滑后的路径。
