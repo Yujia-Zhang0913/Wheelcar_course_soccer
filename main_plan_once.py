@@ -171,7 +171,6 @@ if __name__ == '__main__':
 				best_path_X,best_path_Y=rrt_.Process()
 			elif PLANNING_METHOD=='A':
 				a_star=A_star(obstacles, my_robot_xy, target, -5000,-3800,5000,3800)
-				# a_star=A_star(obstacles, my_robot_xy, target, -3800,-5000,3800,5000)
 				best_path_X,best_path_Y=a_star.Process()
 			else:
 				rrt=RRT(obstacles, my_robot_xy, target, -4950,-3696,4950,3696)
