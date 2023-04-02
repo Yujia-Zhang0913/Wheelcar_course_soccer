@@ -15,7 +15,8 @@ import numpy as np
 from scipy.signal import savgol_filter
 from scipy.interpolate import make_interp_spline
 from math import factorial
-from MPC import MPCPredict
+from MPC_CADADI import MPCPredict
+# from MPC_CADADI import MPCPredict
 # another bassel
 
 # import numpy as np
