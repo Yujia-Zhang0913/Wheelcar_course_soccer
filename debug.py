@@ -100,7 +100,32 @@ class Debugger(object):
             line.end.y = y[i] - 50
             line.FORWARD = True
             line.BACK = True
-    
+    def draw_points_numpy(self, package, x, y,color='w'):
+        idx=['w','bk','r','g','b'].index(color)
+        COLOR = [Debug_Msg.WHITE,Debug_Msg.BLACK,Debug_Msg.RED,Debug_Msg.GREEN,Debug_Msg.BLUE][idx]
+        for i in range(x.shape[0]):
+            # line 1
+            msg = package.msgs.add()
+            msg.type = Debug_Msg.LINE
+            msg.color = COLOR
+            line = msg.line
+            line.start.x = x[i] + 50
+            line.start.y = y[i] + 50
+            line.end.x = x[i] - 50
+            line.end.y = y[i] - 50
+            line.FORWARD = True
+            line.BACK = True
+            # line 2
+            msg = package.msgs.add()
+            msg.type = Debug_Msg.LINE
+            msg.color = COLOR
+            line = msg.line
+            line.start.x = x[i] - 50
+            line.start.y = y[i] + 50
+            line.end.x = x[i] + 50
+            line.end.y = y[i] - 50
+            line.FORWARD = True
+            line.BACK = True
     def send(self, package):
         self.sock.sendto(package.SerializeToString(), self.debug_address)
 

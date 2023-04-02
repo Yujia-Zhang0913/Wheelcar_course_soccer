@@ -215,11 +215,14 @@ if __name__ == '__main__':
 
 			myRobot.vx=v #更新信息
 			myRobot.vw=w
-
+			debugger.draw_point(package,midpos[0],midpos[1])#追踪的midpos（白色）
+			debugger.draw_point(package,position_predict[0],position_predict[1],color='r')#规划处的vw在predict_time后到达的位置（红色）
 		elif TRAJECTORY_METHOD=="MPC":
 			predictor.reCurrentState(myRobot.x,myRobot.y,myRobot.orientation,myRobot.vx,myRobot.vw)
 			
 			predictor.rePredict()
+			predictor.Control(package)
+			# predictor
 			pass 
 		#判断是否到达终点
 		# dist_to_target=np.linalg.norm(my_robot_xy-np.array(target))
@@ -231,8 +234,8 @@ if __name__ == '__main__':
 		debugger.draw_lines(package, x1=best_path_X[:-1], y1=best_path_Y[:-1], x2=best_path_X[1:], y2=best_path_Y[1:])		
 		debugger.draw_lines(package, x1=best_path_X_filtered[:-1], y1=best_path_Y_filtered[:-1], x2=best_path_X_filtered[1:], y2=best_path_Y_filtered[1:],color='g')		
 		
-		debugger.draw_point(package,midpos[0],midpos[1])#追踪的midpos（白色）
-		debugger.draw_point(package,position_predict[0],position_predict[1],color='r')#规划处的vw在predict_time后到达的位置（红色）
+		
+
 		debugger.draw_point(package,start[0],start[1],color='b') #起点(蓝色)
 		debugger.draw_point(package,target[0],target[1],color='g') #终点（绿色）
 		debugger.send(package)
