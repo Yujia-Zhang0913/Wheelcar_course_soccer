@@ -19,7 +19,7 @@ class RRT:
 
     def __init__(self,obstacles_point, start_point, end_point, planning_minx,planning_miny,planning_maxx,planning_maxy):
         """"由给定起点、终点初始化"""
-        self.one=22
+        self.one=175
         self.node_set = []
         self.start_point = start_point
         self.end_point = end_point
@@ -39,7 +39,7 @@ class RRT:
             child 子节点
         """
         def __init__(self,point,father,child,endpoint,startpoint):
-            self.one=25
+            self.one=175
             self.point = point
             self.father = father
             self.child = child
@@ -88,7 +88,7 @@ class RRT:
         while flag:
             flag = 0
             # 利用rand()函数在[0,1]区间内随机生成一个数
-            if np.random.rand() < 0.5:
+            if np.random.rand() < 0.8:
                 # 如果小于self.one，则在图 img_binary 的范围内随机采样一个点
                 x_temp = np.random.randint(self.planning_minx,self.planning_maxx, dtype=int)
                 y_temp = np.random.randint(self.planning_miny,self.planning_maxy, dtype=int)
@@ -97,10 +97,10 @@ class RRT:
                 # 否则用目标点作为采样点
                 temp_point = self.end_point
             dist,nearest_node = self.min_distance_node(temp_point)
-            d = (temp_point-nearest_node.point)/np.linalg.norm(temp_point-nearest_node.point)
+            d = (temp_point-nearest_node.point)/dist
             near_node = RRT.RRT_Tree(nearest_node.point+d*self.one,nearest_node,[],nearest_node.endpoint,nearest_node.startpoint)
             for obstacles_point in self.obstacles_point:
-                if np.linalg.norm(obstacles_point-near_node.point)<150:
+                if np.linalg.norm(obstacles_point-near_node.point)<near_node.one:
                     flag = 1
                     break 
         nearest_node.child.append(near_node)     

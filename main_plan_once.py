@@ -36,9 +36,20 @@ from MPC_CADADI import MPCPredict
 # y_smooth = make_interp_spline(x, y)(x_smooth)
 # plt.plot(x_smooth, y_smooth,'b')
 # plt.show()
-PLANNING_METHOD='RRT'
-TRAJECTORY_METHOD='MPC'
+PLANNING_METHOD='RRT_'
+TRAJECTORY_METHOD='DWA'
+DRAW_RRT='TRUE'
 # alter DWA FEEDBACK MPC
+
+def draw_rrt_tree(start_node,package):
+	current_node=start_node
+	# print(start_node.child)
+	queue=[]
+	queue.extend(current_node.child)
+	while queue !=[]:
+		draw_node=queue.pop(0)
+		debugger.draw_line(package, draw_node.father.point[0], draw_node.father.point[1], draw_node.point[0], draw_node.point[1])
+		queue.extend(draw_node.child)
 
 def evaluate_bezier(points, total):
 	def bezier_Func(points):
@@ -49,6 +60,7 @@ def evaluate_bezier(points, total):
 	bezier_point = bezier_Func(points)
 	new_points = np.array([bezier_point(t) for t in np.linspace(0, 1, total)])
 	return new_points[:, 0], new_points[:, 1]
+
 def B_smooth(x,y,k):
 	 # n表示曲线的点数减1，因为下标从0开始；也表示B样条的基函数要计算到n
 	n = len(x) - 1
@@ -108,7 +120,7 @@ def B_smooth(x,y,k):
 if __name__ == '__main__':
 	# time.sleep(10)
 	vision = Vision()
-	time.sleep(0.1)
+	time.sleep(0.01)
 	action = Action()
 	debugger = Debugger()
 	# blue_robot_xy=[np.array([vision.blue_robot[i].x,vision.blue_robot[i].y]) for i in range(1,15) if vision.blue_robot[i].x!=-999999 and vision.blue_robot[i].y!=-999999]
@@ -125,13 +137,19 @@ if __name__ == '__main__':
 	# path=np.transpose([best_path_X,best_path_Y])
 	# 想要使用反馈控制，取消下一行注释
 	# controller=Controller(path=path,robot=myRobot)
+	dt=0.1
 	i=1
 	flag=1
 	if TRAJECTORY_METHOD=="MPC":
 		predictor=MPCPredict(myRobot.x,myRobot.y,myRobot.orientation)
 		predictor.setAction(action)
 		predictor.setDebugger(debugger)
+	if TRAJECTORY_METHOD=="MPC":
+		predictor=MPCPredict(myRobot.x,myRobot.y,myRobot.orientation)
+		predictor.setAction(action)
+		predictor.setDebugger(debugger)
 	while True:
+		frame_start=time.time()
 		blue_robot_xy=[np.array([vision.blue_robot[j].x,vision.blue_robot[j].y]) for j in range(1,15) if vision.blue_robot[j].x!=-999999 and vision.blue_robot[j].y!=-999999]
 		yellow_robot_xy=[np.array([vision.yellow_robot[j].x,vision.yellow_robot[j].y]) for j in range(0,15) if vision.yellow_robot[j].x!=-999999 and vision.yellow_robot[j].y!=-999999]
 		obstacles=np.array(blue_robot_xy+yellow_robot_xy)
@@ -140,6 +158,7 @@ if __name__ == '__main__':
 		# 1. path planning & velocity planning
 		# Do something
 		package = Debug_Msgs()
+		package = Debug_Msgs()
 		if flag==1:#若到达终点则进行重规划
 			if i%2==1:
 				start=[2400,1500]
@@ -147,10 +166,15 @@ if __name__ == '__main__':
 			else:
 				start=[-2400,-1500]
 				target=[2400,1500]
-			rrt_=RRT_(obstacles, my_robot_xy, target, -4950,-3694,4950,3696)
-			# best_path_X,best_path_Y=a_star.Process()
-			# best_path_X,best_path_Y=rrt.Process()
-			best_path_X,best_path_Y=rrt_.Process()
+			if PLANNING_METHOD=='RRT_':
+				rrt_=RRT_(obstacles, my_robot_xy, target, -4950,-3696,4950,3696)
+				best_path_X,best_path_Y=rrt_.Process()
+			elif PLANNING_METHOD=='A':
+				a_star=A_star(obstacles, my_robot_xy, target, -5000,-3750,5000,3750)
+				best_path_X,best_path_Y=a_star.Process()
+			else:
+				rrt=RRT(obstacles, my_robot_xy, target, -4950,-3696,4950,3696)
+				best_path_X,best_path_Y=rrt.Process()
 
 			best_path_X_filtered=[]
 			best_path_Y_filtered=[]
@@ -175,6 +199,10 @@ if __name__ == '__main__':
 				print(best_path_X.shape)
 				predictor.RefreshPath(best_path_X,best_path_Y)
 
+			if TRAJECTORY_METHOD=="MPC":
+				print(best_path_X.shape)
+				predictor.RefreshPath(best_path_X,best_path_Y)
+
 			flag=0
 			# print(np.array([best_path_X_filtered,best_path_Y_filtered]).T)
 		if TRAJECTORY_METHOD=="FEEDBACK":
@@ -182,7 +210,58 @@ if __name__ == '__main__':
 			path=np.transpose([best_path_X,best_path_Y])
 			controller=Controller(path=path,robot=myRobot)
 			print(best_path_X,best_path_Y)
+		if TRAJECTORY_METHOD=="FEEDBACK":
+			# 想要使用反馈控制，取消下三行注释
+			path=np.transpose([best_path_X,best_path_Y])
+			controller=Controller(path=path,robot=myRobot)
+			print(best_path_X,best_path_Y)
 
+			# 2. send command
+			# 想要使用反馈控制，取消下三行注释
+			v,w=controller.refresh()
+			action.sendCommand(vx=v, vy=0, vw=w)
+			print(v,w,myRobot.x,myRobot.y,myRobot.orientation)
+		elif TRAJECTORY_METHOD=="DWA":
+			# # 想要使用反馈控制，注释下10行
+			dwa=DWA()
+			# dwaconfig=Config(obs_radius=150,predict_time=0.35,predict_time_collision=2,gain_heading=0.65,gain_avoid_collision=0.25,gain_velocity=0.1)
+			dwaconfig=Config(obs_radius=150,predict_time=0.65,predict_time_collision=2,gain_heading=0.6,gain_avoid_collision=0.25,gain_velocity=0.15)
+			#hard模式的配置：
+			# dwaconfig=Config(obs_radius=175,predict_time=0.75,predict_time_collision=2,gain_heading=0.55,gain_avoid_collision=0.37,gain_velocity=0.08)#hard
+			robot_info=[myRobot.x,myRobot.y,myRobot.orientation,myRobot.vx,myRobot.vw]
+			dis_temp=np.hypot([best_path_X[i]-myRobot.x for i in range(len(best_path_X))],[best_path_Y[i]-myRobot.y for i in range(len(best_path_Y))]).tolist()
+			# dis_index=dis_temp.index(min(dis_temp))
+			dis_index=np.argmin(dis_temp)
+			#选取跟踪点mid_pos
+			index_delta=int(20*dwaconfig.predict_time) #simple
+			# index_delta=int(15*dwaconfig.predict_time) #hard
+			if dis_index+index_delta+1>len(best_path_Y):#判断midpos是否到达终点
+				dis_index=len(best_path_Y)-index_delta-1
+				dwaconfig.predict_time=dwaconfig.predict_time*0.95 #predict time衰减，防止终点附近大幅减速
+			midpos=[best_path_X[dis_index+index_delta],best_path_Y[dis_index+index_delta]]
+			#dwa规划v和w
+			v,w,position_predict=dwa.plan(robot_info, dwaconfig, midpos, obstacles)
+			action.sendCommand(vx=v, vy=0, vw=w)
+			# 3. draw debug msg
+			
+			# debugger.draw_point(package, controller.x_goal,controller.y_goal)
+			# debugger.draw_circle(package, myRobot.x, myRobot.y)
+			# debugger.draw_lines(package, x1=best_path_X[0:len(best_path_X)-2], y1=best_path_Y[0:len(best_path_X)-2], x2=best_path_X[1:len(best_path_X)-1], y2=best_path_Y[1:len(best_path_X)-1])
+
+
+
+
+			myRobot.vx=v #更新信息
+			myRobot.vw=w
+			debugger.draw_point(package,midpos[0],midpos[1])#追踪的midpos（白色）
+			debugger.draw_point(package,position_predict[0],position_predict[1],color='r')#规划处的vw在predict_time后到达的位置（红色）
+		elif TRAJECTORY_METHOD=="MPC":
+			predictor.reCurrentState(myRobot.x,myRobot.y,myRobot.orientation,myRobot.vx,myRobot.vw)
+			
+			predictor.rePredict()
+			predictor.Control(package)
+			# predictor
+			pass 
 			# 2. send command
 			# 想要使用反馈控制，取消下三行注释
 			v,w=controller.refresh()
@@ -227,17 +306,27 @@ if __name__ == '__main__':
 			pass 
 		#判断是否到达终点
 		# dist_to_target=np.linalg.norm(my_robot_xy-np.array(target))
-		if np.linalg.norm(my_robot_xy-np.array(target))<80:
+		if np.linalg.norm(my_robot_xy-np.array(target))<90:
 			flag=1 #标记到达终点
 			i=i+1 #记录转向
 		# print(v,w,myRobot.x,myRobot.y,myRobot.orientation)
+
 
 		debugger.draw_lines(package, x1=best_path_X[:-1], y1=best_path_Y[:-1], x2=best_path_X[1:], y2=best_path_Y[1:])		
 		debugger.draw_lines(package, x1=best_path_X_filtered[:-1], y1=best_path_Y_filtered[:-1], x2=best_path_X_filtered[1:], y2=best_path_Y_filtered[1:],color='g')		
 		
 		
 
+		
+
 		debugger.draw_point(package,start[0],start[1],color='b') #起点(蓝色)
 		debugger.draw_point(package,target[0],target[1],color='g') #终点（绿色）
+
+		if DRAW_RRT=='TRUE':
+			if PLANNING_METHOD=='RRT':
+				draw_rrt_tree(rrt.start_node,package)
+			else:
+				draw_rrt_tree(rrt_.start_node,package)
+
 		debugger.send(package)
 		time.sleep(0.02)

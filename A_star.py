@@ -23,7 +23,7 @@ class A_star:
 
     def __init__(self,obstacles_point, start_point, end_point, planning_minx,planning_miny,planning_maxx,planning_maxy):
         """"由给定起点、终点以及地图初始化A*的数据"""
-        self.one = 22
+        self.one = 250
         self.closed = []  # 封闭的顶点
         self.unknown = []  # 未探索过的顶点
         self.now = 0       # 现在的Vertex
