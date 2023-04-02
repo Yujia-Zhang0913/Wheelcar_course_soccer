@@ -50,6 +50,7 @@ class MPCPredict():
             theta-=int(theta/np.pi)*np.pi
         elif theta<-np.pi:
             theta+=int(theta/np.pi)*np.pi
+        return theta
     def __initMX(self):
         self.su_=np.zeros((self.p,self.m))
         for i in range(self.p):
@@ -108,8 +109,9 @@ class MPCPredict():
         self.x=x 
         self.y=y 
         self.theta=theta
-        self.v=v 
-        self.w=w 
+        self.v=np.sqrt(self.delta_x**2+self.delta_x**2)/self.controlDt
+        self.w=self.__limitTheta(self.delta_theta) /self.controlDt
+        print(v,w)
     def reObstacles(self,obstacles):
         self.obstacles=obstacles
         # the obstacles are described in the robot world 
@@ -118,13 +120,13 @@ class MPCPredict():
             # self.__reRefPath()
             self.__reMX()
 
-            print("\n----------------H_qp-------------\n",self.H_qp)
-            print("\n----------------A_qp-------------\n",self.A_qp)
-            print("\n----------------g_qp-------------\n",self.g_qp)
-            print("\n----------------lbx_-------------\n",self.lbx_)
-            print("\n----------------ubx_-------------\n",self.ubx_)
-            print("\n----------------lba_-------------\n",self.lba_)
-            print("\n----------------uba_-------------\n",self.uba_)
+            # print("\n----------------H_qp-------------\n",self.H_qp)
+            # print("\n----------------A_qp-------------\n",self.A_qp)
+            # print("\n----------------g_qp-------------\n",self.g_qp)
+            # print("\n----------------lbx_-------------\n",self.lbx_)
+            # print("\n----------------ubx_-------------\n",self.ubx_)
+            # print("\n----------------lba_-------------\n",self.lba_)
+            # print("\n----------------uba_-------------\n",self.uba_)
 
             H = casadi.DM(self.H_qp)
             A = casadi.DM(self.A_qp)
@@ -171,7 +173,7 @@ class MPCPredict():
             t[i]+=t[i-1]
         print('seg x \n',seg_x,'seg y \n',seg_y,'t \n',t)
         self.Length=np.sum(seg_x)+np.sum(seg_y)
-        self.steps=self.Length//self.pace
+        self.steps=self.Length//self.pace*10
 
         # self.xpos=np.interp.int
 
@@ -195,7 +197,7 @@ class MPCPredict():
         self.debugger=debugger
     def Control(self,package):
         if self.curSteps+self.p<self.steps:
-            self.action.sendCommand(vx=self.x_opt[0]+self.v, vy=0, vw=self.x_opt[0]+self.w)
+            self.action.sendCommand(vx=self.x_opt[0]+self.v, vy=0, vw=self.x_opt[1]+self.w)
             self.debugger.draw_points_numpy(package,self.R_qp[self.R_qp_index,0],self.R_qp[self.R_qp_index+1,0])#追踪的midpos（白色）
             self.pre_y=np.matmul(self.su,self.x_opt)-self.E_qp_
             self.debugger.draw_points_numpy(package,self.pre_y[self.R_qp_index,0],self.pre_y[self.R_qp_index+1,0],color='r')#规划处的vw在predict_time后到达的位置（红色）
