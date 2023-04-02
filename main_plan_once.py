@@ -119,7 +119,7 @@ def B_smooth(x,y,k):
 if __name__ == '__main__':
 	# time.sleep(10)
 	vision = Vision()
-	time.sleep(0.1)
+	time.sleep(0.01)
 	action = Action()
 	debugger = Debugger()
 	# blue_robot_xy=[np.array([vision.blue_robot[i].x,vision.blue_robot[i].y]) for i in range(1,15) if vision.blue_robot[i].x!=-999999 and vision.blue_robot[i].y!=-999999]
@@ -136,6 +136,7 @@ if __name__ == '__main__':
 	# path=np.transpose([best_path_X,best_path_Y])
 	# 想要使用反馈控制，取消下一行注释
 	# controller=Controller(path=path,robot=myRobot)
+	dt=0.1
 	i=1
 	flag=1
 	if TRAJECTORY_METHOD=="MPC":
@@ -147,6 +148,7 @@ if __name__ == '__main__':
 		predictor.setAction(action)
 		predictor.setDebugger(debugger)
 	while True:
+		frame_start=time.time()
 		blue_robot_xy=[np.array([vision.blue_robot[j].x,vision.blue_robot[j].y]) for j in range(1,15) if vision.blue_robot[j].x!=-999999 and vision.blue_robot[j].y!=-999999]
 		yellow_robot_xy=[np.array([vision.yellow_robot[j].x,vision.yellow_robot[j].y]) for j in range(0,15) if vision.yellow_robot[j].x!=-999999 and vision.yellow_robot[j].y!=-999999]
 		obstacles=np.array(blue_robot_xy+yellow_robot_xy)
@@ -221,20 +223,24 @@ if __name__ == '__main__':
 		elif TRAJECTORY_METHOD=="DWA":
 			# # 想要使用反馈控制，注释下10行
 			dwa=DWA()
-			dwaconfig=Config(100)
+			# dwaconfig=Config(obs_radius=150,predict_time=0.35,predict_time_collision=2,gain_heading=0.65,gain_avoid_collision=0.25,gain_velocity=0.1)
+			dwaconfig=Config(obs_radius=150,predict_time=0.65,predict_time_collision=2,gain_heading=0.6,gain_avoid_collision=0.25,gain_velocity=0.15)
+			#hard模式的配置：
+			# dwaconfig=Config(obs_radius=175,predict_time=0.75,predict_time_collision=2,gain_heading=0.55,gain_avoid_collision=0.37,gain_velocity=0.08)#hard
 			robot_info=[myRobot.x,myRobot.y,myRobot.orientation,myRobot.vx,myRobot.vw]
 			dis_temp=np.hypot([best_path_X[i]-myRobot.x for i in range(len(best_path_X))],[best_path_Y[i]-myRobot.y for i in range(len(best_path_Y))]).tolist()
 			# dis_index=dis_temp.index(min(dis_temp))
 			dis_index=np.argmin(dis_temp)
 			#选取跟踪点mid_pos
-			index_delta=12
-			if dis_index+index_delta+1>len(best_path_Y):
+			index_delta=int(20*dwaconfig.predict_time) #simple
+			# index_delta=int(15*dwaconfig.predict_time) #hard
+			if dis_index+index_delta+1>len(best_path_Y):#判断midpos是否到达终点
 				dis_index=len(best_path_Y)-index_delta-1
+				dwaconfig.predict_time=dwaconfig.predict_time*0.95 #predict time衰减，防止终点附近大幅减速
 			midpos=[best_path_X[dis_index+index_delta],best_path_Y[dis_index+index_delta]]
 			#dwa规划v和w
 			v,w,position_predict=dwa.plan(robot_info, dwaconfig, midpos, obstacles)
 			action.sendCommand(vx=v, vy=0, vw=w)
-
 			# 3. draw debug msg
 			
 			# debugger.draw_point(package, controller.x_goal,controller.y_goal)
@@ -299,7 +305,7 @@ if __name__ == '__main__':
 			pass 
 		#判断是否到达终点
 		# dist_to_target=np.linalg.norm(my_robot_xy-np.array(target))
-		if np.linalg.norm(my_robot_xy-np.array(target))<80:
+		if np.linalg.norm(my_robot_xy-np.array(target))<90:
 			flag=1 #标记到达终点
 			i=i+1 #记录转向
 		# print(v,w,myRobot.x,myRobot.y,myRobot.orientation)
