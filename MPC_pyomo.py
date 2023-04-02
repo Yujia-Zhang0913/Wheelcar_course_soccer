@@ -6,7 +6,8 @@ import numpy as np
 # to install cvxopt and dependencies
 # These pre-built packages are linked against OpenBLAS and include all the optional extensions (DSDP, FFTW, GLPK, and GSL).
 
-import pyomo 
+# import pyomo 
+import pyomo.environ as omo
 # which can be download here 
 # https://www.coin-or.org/download/binary/Ipopt/
 
@@ -113,6 +114,77 @@ class MPCPredict():
     def reObstacles(self,obstacles):
         self.obstacles=obstacles
         # the obstacles are described in the robot world 
+    def MPC_opt(self,path,theta):
+        #滚动长度
+        H = len(path)-1
+        model = omo.ConcreteModel()
+        #Set
+        model.zk_number = omo.RangeSet(1,H)
+        model.uk_number = omo.RangeSet(0,H)
+        model.uk_obj = omo.RangeSet(0,H-1)
+
+        # Parameters
+        #需要调节的参数如下
+        model.Q = omo.Param(omo.RangeSet(1,2),initialize={1:1,2:1},mutable=True)
+        model.R = omo.Param(omo.RangeSet(1,2),initialize={1:1,2:1},mutable=True)
+        model.S = omo.Param(omo.RangeSet(1,2),initialize={1:1,2:1},mutable=True)
+        #这个要根据机器人来定
+        model.vmax = omo.Param(initialize=0.5)
+        #这个也要自己计算，这里是每两个点之间的距离除以最大速度
+        model.dt = omo.Param(initialize=0.04998/model.vmax)
+    
+
+        model.z0 = omo.Param(omo.RangeSet(0,omo.state_number-1),initialize={0:path[0][0],1:path[0][1],2:theta[0]})
+
+
+
+        # Variables
+
+        model.z = omo.Var(omo.RangeSet(0,omo.state_number-1),model.uk_number)   #建立[x,y,θ]变量
+        model.v = omo.Var(model.uk_number,bounds=(0,model.vmax))
+        model.w = omo.Var(model.uk_number,bounds=(-1,1))
+
+        #0:x   1:y    2：θ
+        #0:v   1:w
+
+        # Constraint
+        model.z0_update = omo.Constraint(omo.RangeSet(0,omo.state_number-1),rule=lambda model,i:model.z[i,0]==model.z0[i])
+        
+        model.x_update = omo.Constraint(model.uk_number,rule=lambda model,k:model.z[0,k+1]==model.z[0,k]+model.v[k]*cos(model.z[2,k])*model.dt
+                                    if k<=H-1 else omo.Constraint.Skip)
+        model.y_update = omo.Constraint(model.uk_number,rule=lambda model,k:model.z[1,k+1]==model.z[1,k]+model.v[k]*sin(model.z[2,k])*model.dt
+                                    if k<=H-1 else omo.Constraint.Skip)
+        model.θ_update = omo.Constraint(model.uk_number,rule=lambda model,k:model.z[2,k+1]==model.z[2,k]+model.w[k]*model.dt
+                                    if k<=H-1 else omo.Constraint.Skip)
+        
+
+        
+
+        
+
+        # Objective
+        model.xQx = model.Q[1]*sum((model.z[0,i]-path[i-1][0])**2 for i in model.zk_number)
+        model.yQy = model.Q[2]*sum((model.z[1,i]-path[i-1][1])**2 for i in model.zk_number)
+
+
+        model.vRv = model.R[1]*sum((model.vmax-model.v[i])**2 for i in model.uk_obj)
+        model.wRw = model.R[2]*sum(model.w[i]**2 for i in model.uk_obj)
+
+        model.dvSdv = model.S[1]*sum((model.v[i+1]-model.v[i])**2 for i in model.uk_obj)
+        model.dwSdw = model.S[2]*sum((model.w[i+1]-model.w[i])**2 for i in model.uk_obj)
+
+        model.obj = omo.Objective(expr=model.xQx+model.yQy+model.vRv+model.wRw+model.dvSdv+model.dwSdw,sense=minimize)
+        
+
+        #Solve
+        omo.SolverFactory("ipopt").solve(model)
+        x_opt = [model.z[0,k]() for k in model.zk_number]
+        y_opt = [model.z[1,k]() for k in model.zk_number]
+        θ_opt = [model.z[2,k]() for k in model.zk_number]
+
+        return x_opt,y_opt,θ_opt
+
+
     def rePredict(self ):
         if self.curSteps+self.p<self.steps:
             # self.__reRefPath()
@@ -126,25 +198,25 @@ class MPCPredict():
             print("\n----------------lba_-------------\n",self.lba_)
             print("\n----------------uba_-------------\n",self.uba_)
 
-            H = casadi.DM(self.H_qp)
-            A = casadi.DM(self.A_qp)
-            g = casadi.DM(self.g_qp)
-            lbx=casadi.DM(self.lbx_)
-            ubx=casadi.DM(self.ubx_)
-            lba=casadi.DM(self.lba_)
-            uba=casadi.DM(self.uba_)
-            # lba = .
+            # H = casadi.DM(self.H_qp)
+            # A = casadi.DM(self.A_qp)
+            # g = casadi.DM(self.g_qp)
+            # lbx=casadi.DM(self.lbx_)
+            # ubx=casadi.DM(self.ubx_)
+            # lba=casadi.DM(self.lba_)
+            # uba=casadi.DM(self.uba_)
+            # # lba = .
 
-            qp = {}
-            qp['h'] = H.sparsity()
-            qp['a'] = A.sparsity()
-            S = casadi.conic('S','qpoases',qp)
-            print(S)
+            # qp = {}
+            # qp['h'] = H.sparsity()
+            # qp['a'] = A.sparsity()
+            # S = casadi.conic('S','qpoases',qp)
+            # print(S)
 
 
-            r = S(h=H, g=g, a=A, lbx=lbx, ubx=ubx,lba=lba,uba=uba)
-            self.x_opt = r['x']
-            print('x_opt: ', self.x_opt)
+            # r = S(h=H, g=g, a=A, lbx=lbx, ubx=ubx,lba=lba,uba=uba)
+            # self.x_opt = r['x']
+            # print('x_opt: ', self.x_opt)
             # self.Control(x_opt[0],x_opt[1])
         else:
             pass
