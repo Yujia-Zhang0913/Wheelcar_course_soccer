@@ -34,18 +34,19 @@ class MPCPredict():
         self.p=p
         # coefficient of Q and P 
 
-        self.Q=1
+        self.Q=10
         # 单次规划位置与期望位置的值
-        self.H=0
+        self.H=0.1
         # 单次规划的速度与角度变化率
-        self.R=0
-        self.S=5
+        self.R=0.1
+        # obstacle
+        self.S=0.1
         # 与上一次规划的差值
 
-        self.predictDt=0.1
-        self.controlDt=0.02
-        self.a_max=4000
-        self.alpha_max=5
+        self.predictDt=1
+        self.controlDt=0.4
+        self.a_max=500
+        self.alpha_max=0.5
 
         self.duv_max=self.a_max*self.controlDt
         self.duw_max=self.alpha_max*self.controlDt
@@ -105,14 +106,17 @@ class MPCPredict():
 
         self.v=v 
         self.w=w 
-        print(self.v,self.w)
+        print("--------v w ----------",self.v,self.w)
     def reObstacles(self,obstacles):
         self.obstacles=obstacles
         # the obstacles are described in the robot world 
     def __selectObstaclss(self):
-        dis=scipy.spatial.distance.cdist(np.append(self.R_qp_x,self.R_qp_x), self.obstacles, metric='euclidean')
-
-
+        dis=scipy.spatial.distance.cdist(np.array((self.x,self.y)).reshape(1,2), self.obstacles, metric='euclidean')
+        # print(dis)
+        self.selectedObs=np.zeros(15)
+        for i in range(15):
+            self.selectedObs[i]=(dis[:,i]<1000)
+        print("---------self.selectedObs---------",self.selectedObs)
         pass 
     def rePredict(self ):
         if self.curSteps+self.p<self.steps:
@@ -127,7 +131,7 @@ class MPCPredict():
             self.model.y = Param(initialize=self.y)
             self.model.theta= Param(initialize=self.theta)
             self.model.uv_max=Param(initialize=3500)
-            self.model.uw_max=Param(initialize=5)
+            self.model.uw_max=Param(initialize=0.2)
 
 
             self.model.Q=Param(initialize=self.Q,mutable=True)
@@ -146,6 +150,7 @@ class MPCPredict():
             self.model.u_delta_v=Var(self.model.ind_m,bounds=(-self.duv_max,self.duv_max))
             self.model.u_delta_w=Var(self.model.ind_m,bounds=(-self.duw_max,self.duw_max))
             self.__reRefPath()
+            self.__selectObstaclss()
             # self.model.u_v=Var(self.model.ind)
             # self.model.u_w=Var(self.model.ind)
             # self.model.u_x=Var(self.model.ind)
@@ -156,18 +161,18 @@ class MPCPredict():
                     if i<=k:
                         sum_delta_v+=model.u_delta_v[i]
                 return model.uv_max-model.v-sum_delta_v>=0
-            # def vminConstraint(model,k):
-            #     sum_delta_v=0
-            #     for i in model.ind_m:
-            #         if i<=k:
-            #             sum_delta_v+=model.u_delta_v[i]
-            #     return  +model.uv_max+model.v+sum_delta_v>=0
             def vminConstraint(model,k):
                 sum_delta_v=0
                 for i in model.ind_m:
                     if i<=k:
                         sum_delta_v+=model.u_delta_v[i]
-                return  model.v+sum_delta_v>=0
+                return  +model.uv_max+model.v+sum_delta_v>=0
+            # def vminConstraint(model,k):
+            #     sum_delta_v=0
+            #     for i in model.ind_m:
+            #         if i<=k:
+            #             sum_delta_v+=model.u_delta_v[i]
+            #     return  model.v+sum_delta_v>=0
             def wmaxConstraint(model,k):
                 sum_delta_w=0
                 for i in model.ind_m:
@@ -219,7 +224,7 @@ class MPCPredict():
                         pre_v+=model.u_delta_v[i]
                         pre_w+=model.u_delta_w[i]
                         uqu+=model.H*(model.u_delta_v[i]**2+model.u_delta_w[i]**2)
-                        # +model.R*(self.duv_max-model.u_delta_w[i])**2
+                        
                         if i<self.m-1 and self.notFisrtPlan:
                             uqu+=model.S*((model.u_delta_v[i]-self.v_opt[i+1])**2+(model.u_delta_w[i]-self.w_opt[i+1])**2)
                     pre_theta+=pre_w*self.controlDt
@@ -227,6 +232,9 @@ class MPCPredict():
                     pre_y+=sin(pre_theta)*pre_v*self.controlDt
 
                     uqu+=model.Q*((pre_x-model.R_qp_x[i])**2+(pre_y-model.R_qp_y[i])**2)
+                    for j in range(15):
+                        if self.selectedObs[j]:
+                            uqu-=model.R*((pre_x-self.obstacles[j,0])**2+(pre_y-self.obstacles[j,1])**2)
 
                 return uqu
             # Objective
@@ -244,14 +252,14 @@ class MPCPredict():
             
 
             #Solve
-            self.optimizer.solve(self.model,tee="tree")
+            self.optimizer.solve(self.model)
 
             # x_opt = [self.model.z[0,k]() for k in self.model.zk_number]
             # y_opt = [self.model.z[1,k]() for k in self.model.zk_number]
             # θ_opt = [self.model.z[2,k]() for k in self.model.zk_number]
             self.v_opt=[self.model.u_delta_v[k]() for k in self.model.ind_m]
             self.w_opt=[self.model.u_delta_w[k]() for k in self.model.ind_m]
-            print(self.v_opt,self.w_opt)
+            print("--------v,w------------",self.v_opt,self.w_opt)
             print(self.v,self.w)
             self.notFisrtPlan=True
             # self.Control(self.model.u_delta_v[0],self.model.u_delta_v[0])
@@ -259,6 +267,12 @@ class MPCPredict():
         else:
             pass
     def __reRefPath(self):
+        # print(max(0,-4))
+        print(np.abs(self.xpos[max(self.curSteps-self.p,0):self.curSteps+self.p]-self.x)+np.abs(self.ypos[max(self.curSteps-self.p,0):self.curSteps+self.p]-self.y))
+        nowSteps=np.argmin(np.abs(self.xpos[max(self.curSteps-self.p,0):self.curSteps+self.p]-self.x)+np.abs(self.ypos[max(self.curSteps-self.p,0):self.curSteps+self.p]-self.y))+max(self.curSteps-self.p,0)
+        print("-----now step-----",nowSteps)
+
+        self.curSteps=nowSteps+1
         # print(self.xpos[self.curSteps:self.curSteps+self.p].shape)
         def R_qp_x_init(model, i):
             return self.xpos[self.curSteps+i]
@@ -298,10 +312,10 @@ class MPCPredict():
 
         #平滑处理后
         self.curSteps=0
-        steps=np.zeros(int(self.steps)+self.p*2)
+        steps=np.zeros(int(self.steps)+self.p)
         # steps[:self.p]=np.linspace(0.1, 5, self.p)
-        self.curSteps=self.p+10
-        steps[self.p:-self.p] = np.linspace(0.1, self.steps-0.01, int(self.steps))  # np.linspace 等差数列,从x.min()到x.max()生成300个数，便于后续插值
+        # self.curSteps=self.p+10
+        steps[:-self.p] = np.linspace(0.1, self.steps-0.01, int(self.steps))  # np.linspace 等差数列,从x.min()到x.max()生成300个数，便于后续插值
         print('steps\n',steps)
         # print(make_interp_spline(t, path_x))
         # self.pos = make_interp_spline(t, path)(steps)
@@ -318,7 +332,7 @@ class MPCPredict():
         self.debugger=debugger
     def Control(self,package):
         if self.curSteps+self.p<self.steps:
-            self.action.sendCommand(vx=self.v_opt[0]+self.v, vy=0, vw=self.w_opt[0]+self.w)
+            self.action.sendCommand(vx=self.v_opt[0]*self.predictDt+self.v, vy=0, vw=self.w_opt[0]*self.predictDt+self.w)
             self.debugger.draw_points_numpy(package,self.R_qp_x[:],self.R_qp_y[:])#追踪的midpos（白色）
 
             self.pre_w[0]=self.w+self.w_opt[0]
