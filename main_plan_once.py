@@ -35,9 +35,9 @@ from MPC import MPCPredict
 # y_smooth = make_interp_spline(x, y)(x_smooth)
 # plt.plot(x_smooth, y_smooth,'b')
 # plt.show()
-PLANNING_METHOD='RRT_'
+PLANNING_METHOD='A'
 TRAJECTORY_METHOD='DWA'
-DRAW_RRT='TRUE'
+DRAW_RRT='NO'
 # alter DWA FEEDBACK MPC
 
 def draw_rrt_tree(start_node,package):
@@ -64,7 +64,7 @@ def B_smooth(x,y,k):
 	 # n表示曲线的点数减1，因为下标从0开始；也表示B样条的基函数要计算到n
 	n = len(x) - 1
 	# u_base表示准均匀集合的分母
-	u_base = n + 1 - k
+	u_base = len(x) - k
 	# U表示准均匀集合，重复k阶个起始点和结束点
 	U = []
 	for i in range(k):
@@ -169,7 +169,8 @@ if __name__ == '__main__':
 				rrt_=RRT_(obstacles, my_robot_xy, target, -4950,-3696,4950,3696)
 				best_path_X,best_path_Y=rrt_.Process()
 			elif PLANNING_METHOD=='A':
-				a_star=A_star(obstacles, my_robot_xy, target, -5000,-3750,5000,3750)
+				a_star=A_star(obstacles, my_robot_xy, target, -5000,-3800,5000,3800)
+				# a_star=A_star(obstacles, my_robot_xy, target, -3800,-5000,3800,5000)
 				best_path_X,best_path_Y=a_star.Process()
 			else:
 				rrt=RRT(obstacles, my_robot_xy, target, -4950,-3696,4950,3696)
@@ -194,6 +195,7 @@ if __name__ == '__main__':
 			best_path_X_filtered,best_path_Y_filtered=B_smooth(best_path_X,best_path_Y,4)
 			best_path_X=np.append(best_path_X,target[0])#最后加上终点的精确坐标，以防差一点到不了终点
 			best_path_Y=np.append(best_path_Y,target[1])
+
 			if TRAJECTORY_METHOD=="MPC":
 				print(best_path_X.shape)
 				predictor.RefreshPath(best_path_X,best_path_Y)

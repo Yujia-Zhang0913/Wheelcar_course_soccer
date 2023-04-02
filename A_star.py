@@ -23,7 +23,7 @@ class A_star:
 
     def __init__(self,obstacles_point, start_point, end_point, planning_minx,planning_miny,planning_maxx,planning_maxy):
         """"由给定起点、终点以及地图初始化A*的数据"""
-        self.one = 250
+        self.one = 100
         self.closed = []  # 封闭的顶点
         self.unknown = []  # 未探索过的顶点
         self.now = 0       # 现在的Vertex
@@ -37,12 +37,12 @@ class A_star:
         self.planning_maxy = planning_maxy
         self.width = int((planning_maxx - planning_minx)/self.one+1)
         self.height = int((planning_maxy - planning_miny)/self.one+1)
-        self.map = np.empty([self.height, self.width], dtype=float)
-        for i in range(self.height):
-            for j in range(self.width):
+        self.map = np.empty([self.width, self.height], dtype=float)
+        for i in range(self.width):
+            for j in range(self.height):
                 self.temp=np.hypot(obstacles_point[:,0]-(i*self.one+planning_minx),obstacles_point[:,1]-(j*self.one+planning_miny))
                 self.map[i,j] = min(self.temp)
-                if self.map[i,j] > 1.5:
+                if self.map[i,j] > self.one:
                     self.map[i,j] = 0
                 else:
                     self.map[i,j] = 1
@@ -67,7 +67,8 @@ class A_star:
             self.endpoint = endpoint  # 终点坐标
             self.father = None        # 父节点，用来回溯最短路
             self.g = g                # 现有代价g值，是由起点到该点的累加值
-            self.h =m.hypot((point[0]-endpoint[0]),(point[1]-endpoint[1]))
+            # self.h =m.hypot((point[0]-endpoint[0]),(point[1]-endpoint[1]))
+            self.h =m.sqrt(2)*min((point[0]-endpoint[0]),(point[1]-endpoint[1]))+abs((point[0]-endpoint[0])-(point[1]-endpoint[1]))
             self.f = self.g + self.h
 
         def search_next(self, vertical, horizontal):
