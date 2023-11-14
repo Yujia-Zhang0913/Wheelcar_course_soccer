@@ -1,1 +1,1 @@
-不要管main1.py这个是轮式画图的
+# Code for soccer robot playing
